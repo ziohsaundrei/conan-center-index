@@ -6,7 +6,7 @@ import os
 
 class ZyreConan(ConanFile):
     name = "zyre"
-    version = "2.0.0"
+    version = "2.0.1"
     license = "MPL-2.0"
     url = "https://github.com/conan-io/conan-center-index"
     homepage = "https://github.com/zeromq/zyre"
@@ -15,11 +15,16 @@ class ZyreConan(ConanFile):
               "message-queue", "asynchronous")
     exports_sources = ['CMakeLists.txt', 'Findzyre.cmake']
     settings = "os", "compiler", "build_type", "arch"
+    requires = "zeromq/4.3.2", "czmq/4.2.0"
     options = {
+        "shared": [True, False],
         "fPIC": [True, False],
+        "drafts": [True, False],
     }
     default_options = {
+        "shared": True,
         "fPIC": True,
+        "drafts": False,
     }
     generators = ["cmake"]
     _source_subfolder = "source_subfolder"
@@ -34,10 +39,6 @@ class ZyreConan(ConanFile):
                 self.settings.compiler == 'Visual Studio':
             self.build_requires.add('ninja/1.9.0')
 
-    def requirements(self):
-        self.requires.add("zmq/4.3.2")
-        self.requires.add("czmq/4.2.0")
-
     def source(self):
         tools.get(**self.conan_data["sources"][self.version])
         extracted_dir = self.name + "-" + self.version
@@ -47,6 +48,9 @@ class ZyreConan(ConanFile):
         generator = 'Ninja' if self.settings.compiler == "Visual Studio" \
             else None
         cmake = CMake(self, generator=generator)
+        cmake.definitions["ZYRE_BUILD_SHARED"] = self.options.shared
+        cmake.definitions["ZYRE_BUILD_STATIC"] = not self.options.shared
+        cmake.definitions["ENABLE_DRAFTS"] = self.options.drafts
         cmake.configure(build_dir=self._build_subfolder)
         return cmake
 
